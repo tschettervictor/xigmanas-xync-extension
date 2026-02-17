@@ -100,7 +100,14 @@ if ($_POST) {
 // Fetch current values
 $current_values = [];
 foreach (array_merge($checkbox_vars, $text_vars) as $var) {
-    $current_values[$var] = exec("sysrc -f " . escapeshellarg($configfile) . " -n " . escapeshellarg($var) . " 2>/dev/null");
+    $val = exec("sysrc -f " . escapeshellarg($configfile) . " -n " . escapeshellarg($var) . " 2>/dev/null");
+    
+    // Default LOG_BASE to cwdir if empty
+    if ($var === 'LOG_BASE' && empty($val)) {
+        $val = $cwdir;
+    }
+    
+    $current_values[$var] = $val;
 }
 
 // *** CONFIG.XML LOOKUP (Fixed for "Array" bug) ***
@@ -146,7 +153,7 @@ include 'fbegin.inc';
                 <table width="100%" border="0" cellpadding="6" cellspacing="0">
                     <?php 
                     html_titleline2(gettext("General Settings"));
-                    html_checkbox2('ALLOW_RECONCILIATION', gettext('Allow Reconciliation'), ($current_values['ALLOW_RECONCILIATION'] === '1'), gettext('Enable reconciliation check.'), '', false);
+                    html_checkbox2('ALLOW_RECONCILIATION', gettext('Allow Reconciliation'), ($current_values['ALLOW_RECONCILIATION'] === '1'), gettext('Force replicate.'), '', false);
                     html_checkbox2('ALLOW_ROOT_DATASETS', gettext('Allow Root Datasets'), ($current_values['ALLOW_ROOT_DATASETS'] === '1'), gettext('Permit root dataset replication.'), '', false);
                     html_checkbox2('RECURSE_CHILDREN', gettext('Recurse Children'), ($current_values['RECURSE_CHILDREN'] === '1'), gettext('Include child datasets.'), '', false);
                     html_titleline2(gettext("Replication Sets"));
@@ -156,14 +163,14 @@ include 'fbegin.inc';
                     html_combobox2('SCHEDULE_PRESET', gettext('Frequency'), $current_preset, $opts, '', false);
                     ?>
                     <tr>
-                        <td class="vncell"><?=gtext("Job Status (config.xml)");?></td>
+                        <td class="vncell"><?=gtext("Current schedule (cron).");?></td>
                         <td class="vtable">
                             <pre style="margin:0; padding:10px; background:#111; color:#55ff55; border-radius:4px; font-weight:bold;"><?= htmlspecialchars($xml_status_text); ?></pre>
                         </td>
                     </tr>
                     <?php
                     html_titleline2(gettext("Logging"));
-                    html_inputbox2('LOG_BASE', gettext('Log Base Path'), $current_values['LOG_BASE'], '', false, 60);
+                    html_inputbox2('LOG_BASE', gettext('Log Path'), $current_values['LOG_BASE'], '', false, 60);
                     ?>
                 </table>
                 <div id="submit" style="margin-top: 20px;">
