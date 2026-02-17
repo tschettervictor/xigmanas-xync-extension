@@ -1,6 +1,6 @@
 #!/bin/sh
 # xync-init
-set -x 
+
 # Copyright (c) 2026, Victor Tschetter.
 # All rights reserved.
 
@@ -44,7 +44,7 @@ WWWPATH="/usr/local/www"
 USRLOCAL="/usr/local"
 XYNCCONF="${CWDIR}/${APPNAME}.conf"
 EXTCONF="${APPNAME}.conf.ext"
-INSTALLPATH="${CWDIR}/${APPNAME}"
+INSTALLPATH="${CWDIR}"
 BRANCH="main"
 XYNC_URL="https://github.com/tschettervictor/${APPNAME}/archive/${BRANCH}.zip"
 GITURL="https://github.com/tschettervictor/xigmanas-${APPNAME}-extension/archive/${BRANCH}.zip"
@@ -52,20 +52,20 @@ VERFILE="https://raw.githubusercontent.com/tschettervictor/xigmanas-${APPNAME}-e
 
 add_extension()
 {
-	if [ ! -f "${CWDIR}/${APPNAME}/${APPNAME}.sh" ]; then
+	if [ ! -f "${CWDIR}/${APPNAME}.sh" ]; then
 		# Fetch latest package
-		mkdir -p "${CWDIR}/${APPNAME}".
 		echo "Fetching ${APPNAME} files..."
 		fetch -ao ${CWDIR}/${BRANCH}.zip --no-verify-peer --timeout=30 ${XYNC_URL} || \
 		echo "[ERROR]: A problem has occurred while fetching ${APPNAME}."
 	fi
 	# Extract files from package.
 	if [ -f "${CWDIR}/${BRANCH}.zip" ]; then
-		if [ ! -f "${CWDIR}/${APPNAME}/${APPNAME}.sh" ]; then
+		if [ ! -f "${CWDIR}/${APPNAME}.sh" ]; then
 			echo "Extracting ${APPNAME}..."
-			tar -xf ${CWDIR}/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/${APPNAME} || \
+			tar -xf ${CWDIR}/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
 			echo "[ERROR]: A problem has occurred while extractig ${APPNAME} files."
-			chmod 555 ${CWDIR}/${APPNAME}/${APPNAME}.sh
+			chmod 555 ${CWDIR}/${APPNAME}.sh
+			chmod +x ${CWDIR}/${APPNAME}.sh
 			rm -f ${CWDIR}/${BRANCH}.zip
 			echo "Done!"
 		fi
