@@ -107,6 +107,7 @@ EOF
 		echo "Done!"
 
 		# Set extension to enable by default.
+		touch ${CWDIR}/${EXTCONF}
 		sysrc -f ${CWDIR}${EXTCONF} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 	fi
 }
