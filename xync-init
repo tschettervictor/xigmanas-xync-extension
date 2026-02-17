@@ -1,6 +1,6 @@
 #!/bin/sh
 # xync-init
-
+set -x
 # Copyright (c) 2026, Victor Tschetter.
 # All rights reserved.
 
@@ -131,7 +131,7 @@ configure_gui()
 		fi
 		mkdir -p /var/etc/xync
 		ln -fhs ${CWDIR}/gui/ext/xync ${WWWPATH}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
-		ln -fhs ${CWDIR}/xync.conf.ext /var/etc/xync/xync.conf.ext || error_notify "Error: A problem has occurred while linking extension config file."			
+		ln -fhs ${CWDIR}/${EXTCONF} /var/etc/xync/${EXTCONF} || error_notify "Error: A problem has occurred while linking extension config file."			
 		ln -fhs ${CWDIR}/gui/xync_manager_gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while linking extension gui files."
 	fi
 }
