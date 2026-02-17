@@ -84,7 +84,7 @@ if ($_POST) {
         config_lock();
         rc_update_service('cron'); 
         config_unlock();
-        $savemsg = gtext("Settings saved and config.xml updated.");
+        $savemsg = gtext("Configuration updated.");
     }
 
     if (isset($_POST['delete_set']) && is_numeric($_POST['delete_set'])) {
@@ -175,7 +175,7 @@ include 'fbegin.inc';
                     ?>
                 </table>
                 <div id="submit" style="margin-top: 20px;">
-                    <input name="save" type="submit" class="formbtn" value="<?=gtext('Save Configuration');?>"/>
+                    <input name="save" type="submit" class="formbtn" value="<?=gtext('Save');?>"/>
                 </div>
                 <?php include 'formend.inc'; ?>
             </td>
