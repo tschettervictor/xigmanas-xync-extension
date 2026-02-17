@@ -61,7 +61,11 @@ add_extension()
 	if [ -f "${CWDIR}/${BRANCH}.zip" ]; then
 		if [ ! -f "${CWDIR}/${APPNAME}.sh" ]; then
 			echo "Extracting ${APPNAME}..."
-			tar -xf ${CWDIR}/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
+			if [ -f "${XYNCCONF}" ]; then
+				tar -xf ${CWDIR}/${BRANCH}.zip --exclude='.git*' --exclude='xync.conf' --strip-components 1 -C ${CWDIR} || \
+			else
+				tar -xf ${CWDIR}/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
+			fi
 			echo "[ERROR]: A problem has occurred while extractig ${APPNAME} files."
 			chmod 555 ${CWDIR}/${APPNAME}.sh
 			rm -f ${CWDIR}/${BRANCH}.zip
