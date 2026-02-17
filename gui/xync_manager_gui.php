@@ -23,6 +23,7 @@ if (file_exists($ext_conf)) {
 
 $configfile = "{$cwdir}/xync.conf";
 $script_path = "{$cwdir}/xync.sh";
+$logbase = "{$cwdir}/logs";
 $xync_uuid = "68c74f5d-1234-4321-a1b2-c3d4e5f6a7b8"; 
 
 $checkbox_vars = ['ALLOW_RECONCILIATION', 'ALLOW_ROOT_DATASETS', 'RECURSE_CHILDREN'];
@@ -104,7 +105,7 @@ foreach (array_merge($checkbox_vars, $text_vars) as $var) {
     
     // Default LOG_BASE to cwdir if empty
     if ($var === 'LOG_BASE' && empty($val)) {
-        $val = $cwdir;
+        $val = $logbase;
     }
     
     $current_values[$var] = $val;
