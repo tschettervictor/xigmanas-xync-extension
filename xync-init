@@ -1,0 +1,151 @@
+#!/bin/sh
+# xync-init
+set -x 
+# Copyright (c) 2026, Victor Tschetter.
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of the developer nor the names of contributors
+#    may be used to endorse or promote products derived from this software
+#    without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE DEVELOPER ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE DEVELOPER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+# Set environment.
+PATH=${PATH}:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+
+# Determine full working directory.
+CWDIR=$(dirname $(realpath $0))
+
+# Global variables.
+XYNC_DIR=$(echo "${CWDIR}" | grep -o '[^/]*$')
+SCRIPTNAME=$(basename $0)
+CONFIG="/cf/conf/config.xml"
+PRDNAME="Xync"
+APPNAME="xync"
+WWWPATH="/usr/local/www"
+USRLOCAL="/usr/local"
+XYNCCONF="${CWDIR}/${APPNAME}.conf"
+EXTCONF="${APPNAME}.conf.ext"
+INSTALLPATH="${CWDIR}/${APPNAME}"
+BRANCH="main"
+XYNC_URL="https://github.com/tschettervictor/${APPNAME}/archive/${BRANCH}.zip"
+GITURL="https://github.com/tschettervictor/xigmanas-${APPNAME}-extension/archive/${BRANCH}.zip"
+VERFILE="https://raw.githubusercontent.com/tschettervictor/xigmanas-${APPNAME}-extension/${BRANCH}/version"
+
+add_extension()
+{
+	if [ ! -f "${CWDIR}/${APPNAME}/${APPNAME}.sh" ]; then
+		# Fetch latest package
+		mkdir -p "${CWDIR}/${APPNAME}".
+		echo "Fetching ${APPNAME} files..."
+		fetch -ao ${CWDIR}/${BRANCH}.zip --no-verify-peer --timeout=30 ${XYNC_URL} || \
+		echo "[ERROR]: A problem has occurred while fetching ${APPNAME}."
+	fi
+	# Extract files from package.
+	if [ -f "${CWDIR}/${BRANCH}.zip" ]; then
+		if [ ! -f "${CWDIR}/${APPNAME}/${APPNAME}.sh" ]; then
+			echo "Extracting ${APPNAME}..."
+			tar -xf ${CWDIR}/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/${APPNAME} || \
+			echo "[ERROR]: A problem has occurred while extractig ${APPNAME} files."
+			chmod 555 ${CWDIR}/${APPNAME}/${APPNAME}.sh
+			rm -f ${CWDIR}/${BRANCH}.zip
+			echo "Done!"
+		fi
+	fi
+}
+
+add_postinit()
+{
+	# Check and generate temporary php script for postinit command.
+	if ! grep -qw ${CWDIR}/${SCRIPTNAME} ${CONFIG}; then
+		touch ${CWDIR}/postinit || error_notify "Error: A problem has occurred while creating the postinit file."
+		chmod +x ${CWDIR}/postinit
+		cat << EOF > ${CWDIR}/postinit
+<?php
+require_once("config.inc");
+require_once("functions.inc");
+\$cmd = dirname(__FILE__)."/${SCRIPTNAME}";
+\$name = "${PRDNAME} Extension";
+\$comment = "Start ${PRDNAME} Replication Manager";
+\$rc = &array_make_branch(\$config,'rc','param');
+if(false === array_search_ex(\$cmd,\$rc,'cmd')):
+	\$rc_param = [];
+	\$rc_param['uuid'] = uuid();
+	\$rc_param['name'] = \$name;
+	\$rc_param['value'] = \$cmd;
+	\$rc_param['comment'] = \$comment;
+	\$rc_param['typeid'] = '2';
+	\$rc_param['enable'] = true;
+	\$rc[] = \$rc_param;
+	write_config();
+endif;
+unset(\$rc);
+?>
+EOF
+
+		# Execute temporary php script.
+		echo "Creating postinit command..."
+		php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit || \
+		error_notify "Error: A problem has occurred while executing postinit file."
+		echo "Done!"
+
+		# Set extension to enable by default.
+		sysrc -f ${CWDIR}${EXTCONF} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
+	fi
+}
+
+configure_symlinks()
+{
+	# Set dir/files required permissions.
+	chmod 0750 ${CWDIR}
+
+	# Link xync-init to /usr/local/sbin.
+	if [ ! -f "${USRLOCAL}/sbin/${SCRIPTNAME}" ]; then
+		ln -fs ${CWDIR}/${SCRIPTNAME} ${USRLOCAL}/sbin/${SCRIPTNAME}
+	fi
+}
+
+configure_gui()
+{
+	# Initialize the extension gui.
+	if [ -d "${CWDIR}/gui" ]; then
+		if [ ! -d "${WWWPATH}/ext" ]; then
+			mkdir -p ${WWWPATH}/ext
+		fi
+		mkdir -p /var/etc/xync
+		ln -fhs ${CWDIR}/gui/ext/xync ${WWWPATH}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
+		ln -fhs ${CWDIR}/xync.conf.ext /var/etc/xync/xync.conf.ext || error_notify "Error: A problem has occurred while linking extension config file."			
+		ln -fhs ${CWDIR}/gui/xync_manager_gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while linking extension gui files."
+	fi
+}
+
+xync_init()
+{
+	echo "Initializing ${APPNAME}..."
+
+	# Function calls.
+	add_postinit
+	add_extension
+	configure_symlinks
+	configure_gui
+}
+
+xync_init
