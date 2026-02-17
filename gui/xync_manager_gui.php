@@ -21,7 +21,7 @@ if (file_exists($ext_conf)) {
 
 $configfile = "{$cwdir}/xync.conf";
 $script_path = "{$cwdir}/xync.sh";
-$logbase = "{$cwdir}/logs";
+$logbase_default = "{$cwdir}/logs";
 $xync_uuid = "68c74f5d-1234-4321-a1b2-c3d4e5f6a7b8"; 
 
 $checkbox_vars = ['ALLOW_RECONCILIATION', 'ALLOW_ROOT_DATASETS', 'RECURSE_CHILDREN'];
@@ -29,7 +29,6 @@ $text_vars = ['LOG_BASE'];
 
 if ($_POST) {
     unset($savemsg);
-    
     if (isset($_POST['save']) && $_POST['save']) {
         foreach ($checkbox_vars as $var) {
             $val = isset($_POST[$var]) ? "1" : "0";
@@ -66,11 +65,8 @@ if ($_POST) {
             $cron_record['who'] = 'root';
             $cron_record['command'] = $script_path . " --config " . $configfile;
             
-            if ($index !== false) {
-                $a_cronjob[$index] = $cron_record;
-            } else {
-                $a_cronjob[] = $cron_record;
-            }
+            if ($index !== false) { $a_cronjob[$index] = $cron_record; } 
+            else { $a_cronjob[] = $cron_record; }
         }
 
         write_config();
@@ -83,46 +79,56 @@ if ($_POST) {
     if (isset($_POST['delete_set']) && is_numeric($_POST['delete_set'])) {
         $idx = (int)$_POST['delete_set'];
         $raw = exec("sysrc -f " . escapeshellarg($configfile) . " -n REPLICATE_SETS 2>/dev/null");
-        $sets = array_filter(explode(" ", $raw));
-        // Re-index array after exploding to ensure numeric keys match
-        $sets = array_values($sets); 
+        $sets = array_values(array_filter(explode(" ", $raw)));
         if (isset($sets[$idx])) {
             unset($sets[$idx]);
             mwexec("sysrc -f " . escapeshellarg($configfile) . " REPLICATE_SETS=" . escapeshellarg(implode(" ", $sets)));
-            $savemsg = gtext("Replication set removed.");
         }
     }
 }
 
+// Fetch current values
 $current_values = [];
 foreach (array_merge($checkbox_vars, $text_vars) as $var) {
     $val = exec("sysrc -f " . escapeshellarg($configfile) . " -n " . escapeshellarg($var) . " 2>/dev/null");
-    if ($var === 'LOG_BASE' && empty($val)) { $val = $logbase; }
+    if ($var === 'LOG_BASE' && empty($val)) { $val = $logbase_default; }
     $current_values[$var] = $val;
 }
 
+// Log Parser Logic
+$log_dir = $current_values['LOG_BASE'];
+$last_line = "No logs found.";
+$status_color = "#999"; // Default Gray
+
+if (is_dir($log_dir)) {
+    $latest_log = exec("ls -t " . escapeshellarg($log_dir) . "/*.log 2>/dev/null | head -n 1");
+    if (!empty($latest_log)) {
+        $last_line = exec("tail -n 1 " . escapeshellarg($latest_log));
+        $lower_line = strtolower($last_line);
+        
+        if (strpos($lower_line, 'success') !== false) { $status_color = "#55ff55"; }
+        elseif (strpos($lower_line, 'warning') !== false) { $status_color = "#ffff55"; }
+        elseif (strpos($lower_line, 'error') !== false) { $status_color = "#ff5555"; }
+    }
+}
+
+// Cron Lookup
 $current_preset = 'none';
 $xml_status_text = "Disabled";
 $job_index = arr::search_ex($xync_uuid, $config['cron']['job'] ?? [], 'uuid');
-
 if ($job_index !== false) {
     $job = $config['cron']['job'][$job_index];
     if (($job['all_hours'] ?? '') === '1') $current_preset = 'hourly';
     elseif (($job['all_weekdays'] ?? '') === '0') $current_preset = 'weekly';
     else $current_preset = 'daily';
-
-    $fmt = function($val, $default = '*') {
-        return (is_array($val) || empty($val)) ? $default : (string)$val;
-    };
-
+    
+    $fmt = function($val, $default = '*') { return (is_array($val) || empty($val)) ? $default : (string)$val; };
     $m = $fmt($job['minute'], '0');
     $h = ($job['all_hours'] === '1') ? '*' : $fmt($job['hour'], '0');
     $d = ($job['all_days'] === '1') ? '*' : $fmt($job['day'], '*');
     $M = ($job['all_months'] === '1') ? '*' : $fmt($job['month'], '*');
     $w = ($job['all_weekdays'] === '1') ? '*' : $fmt($job['weekday'], '*');
-    $who = $fmt($job['who'], 'root');
-    $cmd = $fmt($job['command'], $script_path);
-    $xml_status_text = "{$m} {$h} {$d} {$M} {$w} {$who} {$cmd}";
+    $xml_status_text = "{$m} {$h} {$d} {$M} {$w} {$job['who']} {$job['command']}";
 }
 
 $raw_replicate_sets = exec("sysrc -f " . escapeshellarg($configfile) . " -n REPLICATE_SETS 2>/dev/null");
@@ -146,41 +152,43 @@ include 'fbegin.inc';
                     
                     html_titleline2(gettext("Replication Sets"));
                     html_inputbox2('REPLICATE_SETS_ADD', gettext('Add New Set'), '', 'source:destination', false, 60);
-                    ?>
-                    
-                    <?php if (!empty($replicate_sets_list)): ?>
+                    if (!empty($replicate_sets_list)): ?>
                     <tr>
                         <td class="vncell"><?=gtext("Active Sets");?></td>
                         <td class="vtable">
-                            <table width="100%" border="0" cellpadding="2" cellspacing="0">
-                                <?php foreach ($replicate_sets_list as $idx => $set): ?>
-                                <tr>
-                                    <td width="80%"><code><?= htmlspecialchars($set); ?></code></td>
-                                    <td width="20%">
-                                        <button type="submit" name="delete_set" value="<?= $idx; ?>" class="formbtn" style="padding:2px 10px;">Delete</button>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </table>
+                            <?php foreach ($replicate_sets_list as $idx => $set): ?>
+                                <div style="margin-bottom:5px;">
+                                    <code><?= htmlspecialchars($set); ?></code> 
+                                    <button type="submit" name="delete_set" value="<?= $idx; ?>" class="formbtn" style="padding:0 5px; font-size:10px;">Delete</button>
+                                </div>
+                            <?php endforeach; ?>
                         </td>
                     </tr>
-                    <?php endif; ?>
+                    <?php endif;
 
-                    <?php
                     html_titleline2(gettext("Replication Schedule"));
                     $opts = ['none' => 'Disabled', 'hourly' => 'Hourly', 'daily' => 'Daily', 'weekly' => 'Weekly'];
                     html_combobox2('SCHEDULE_PRESET', gettext('Frequency'), $current_preset, $opts, '', false);
                     ?>
                     <tr>
-                        <td class="vncell"><?=gtext("Current schedule (cron).");?></td>
+                        <td class="vncell"><?=gtext("Cron Command");?></td>
                         <td class="vtable">
-                            <pre style="margin:0; padding:10px; background:#111; color:#55ff55; border-radius:4px; font-weight:bold;"><?= htmlspecialchars($xml_status_text); ?></pre>
+                            <pre style="margin:0; padding:8px; background:#111; color:#ccc; border-radius:4px; font-size:11px;"><?= htmlspecialchars($xml_status_text); ?></pre>
                         </td>
                     </tr>
                     <?php
                     html_titleline2(gettext("Logging"));
                     html_inputbox2('LOG_BASE', gettext('Log Path'), $current_values['LOG_BASE'], '', false, 60);
+
+                    // NEW STATUS SECTION
+                    html_titleline2(gettext("Status"));
                     ?>
+                    <tr>
+                        <td class="vncell"><?=gtext("Last Replication Status");?></td>
+                        <td class="vtable">
+                            <pre style="margin:0; padding:10px; background:#111; color:<?= $status_color; ?>; border-radius:4px; font-weight:bold; white-space: pre-wrap; word-break: break-all;"><?= htmlspecialchars($last_line); ?></pre>
+                        </td>
+                    </tr>
                 </table>
                 <div id="submit" style="margin-top: 20px;">
                     <input name="save" type="submit" class="formbtn" value="<?=gtext('Save');?>"/>
