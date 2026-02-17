@@ -149,7 +149,8 @@ include 'fbegin.inc';
                     html_checkbox2('ALLOW_RECONCILIATION', gettext('Allow Reconciliation'), ($current_values['ALLOW_RECONCILIATION'] === '1'), gettext('Enable reconciliation check.'), '', false);
                     html_checkbox2('ALLOW_ROOT_DATASETS', gettext('Allow Root Datasets'), ($current_values['ALLOW_ROOT_DATASETS'] === '1'), gettext('Permit root dataset replication.'), '', false);
                     html_checkbox2('RECURSE_CHILDREN', gettext('Recurse Children'), ($current_values['RECURSE_CHILDREN'] === '1'), gettext('Include child datasets.'), '', false);
-                    
+                    html_titleline2(gettext("Replication Sets"));
+                    html_inputbox2('REPLICATE_SETS_ADD', gettext('Add New Set'), '', 'source:destination', false, 60);
                     html_titleline2(gettext("Replication Schedule"));
                     $opts = ['none' => 'Disabled', 'hourly' => 'Hourly', 'daily' => 'Daily', 'weekly' => 'Weekly'];
                     html_combobox2('SCHEDULE_PRESET', gettext('Frequency'), $current_preset, $opts, '', false);
@@ -160,9 +161,7 @@ include 'fbegin.inc';
                             <pre style="margin:0; padding:10px; background:#111; color:#55ff55; border-radius:4px; font-weight:bold;"><?= htmlspecialchars($xml_status_text); ?></pre>
                         </td>
                     </tr>
-                    <?php 
-                    html_titleline2(gettext("Replication Sets"));
-                    html_inputbox2('REPLICATE_SETS_ADD', gettext('Add New Set'), '', 'source:destination', false, 60);
+                    <?php
                     html_titleline2(gettext("Logging"));
                     html_inputbox2('LOG_BASE', gettext('Log Base Path'), $current_values['LOG_BASE'], '', false, 60);
                     ?>
