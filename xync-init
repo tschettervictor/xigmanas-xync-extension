@@ -46,8 +46,7 @@ XYNCCONF="${CWDIR}/${APPNAME}.conf"
 EXTCONF="${APPNAME}.conf.ext"
 INSTALLPATH="${CWDIR}"
 BRANCH="main"
-XYNC_URL="https://github.com/tschettervictor/${APPNAME}/archive/${BRANCH}.zip"
-GITURL="https://github.com/tschettervictor/xigmanas-${APPNAME}-extension/archive/${BRANCH}.zip"
+XYNC_URL="https://github.com/tschettervictor/xigmanas-${APPNAME}-extension/archive/${BRANCH}.zip"
 VERFILE="https://raw.githubusercontent.com/tschettervictor/xigmanas-${APPNAME}-extension/${BRANCH}/version"
 
 add_extension()
