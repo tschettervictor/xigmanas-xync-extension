@@ -1,6 +1,6 @@
 #!/bin/sh
 # xync-init
-set -x
+
 # Copyright (c) 2026, Victor Tschetter.
 # All rights reserved.
 
@@ -64,7 +64,6 @@ add_extension()
 			tar -xf ${CWDIR}/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
 			echo "[ERROR]: A problem has occurred while extractig ${APPNAME} files."
 			chmod 555 ${CWDIR}/${APPNAME}.sh
-			chmod +x ${CWDIR}/${APPNAME}.sh
 			rm -f ${CWDIR}/${BRANCH}.zip
 			echo "Done!"
 		fi
@@ -105,10 +104,10 @@ EOF
 		php-cgi -f ${CWDIR}/postinit && rm ${CWDIR}/postinit || \
 		error_notify "Error: A problem has occurred while executing postinit file."
 		echo "Done!"
-
+	fi
+	if [ ! -f "${CWDIR}/${EXTCONF}" ]; then
 		# Set extension to enable by default.
-		touch ${CWDIR}/${EXTCONF}
-		sysrc -f ${CWDIR}${EXTCONF} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
+		sysrc -f ${CWDIR}/${EXTCONF} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 	fi
 }
 
