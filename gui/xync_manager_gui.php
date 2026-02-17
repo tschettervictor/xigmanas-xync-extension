@@ -11,9 +11,18 @@ use common\arr;
 // Variables and Paths
 $sphere_scriptname = basename(__FILE__);
 $confdir = "/var/etc/xync";
-$cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' $confdir/xync.conf.ext | /usr/bin/cut -d'\"' -f2");
-$configfile = "$cwdir/xync.conf";
-$script_path = "$cwdir/xync.sh";
+$ext_conf = "{$confdir}/xync.conf.ext";
+
+// Logic to find the current working directory safely
+if (file_exists($ext_conf)) {
+    $cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' " . escapeshellarg($ext_conf) . " | /usr/bin/cut -d'\"' -f2");
+} else {
+    // Fallback if the .ext file hasn't been created yet
+    $cwdir = "/mnt/backup/extensions/xync"; 
+}
+
+$configfile = "{$cwdir}/xync.conf";
+$script_path = "{$cwdir}/xync.sh";
 $xync_uuid = "68c74f5d-1234-4321-a1b2-c3d4e5f6a7b8"; 
 
 $checkbox_vars = ['ALLOW_RECONCILIATION', 'ALLOW_ROOT_DATASETS', 'RECURSE_CHILDREN'];
@@ -23,7 +32,7 @@ if ($_POST) {
     unset($savemsg);
     
     if (isset($_POST['save']) && $_POST['save']) {
-        // 1. Save Extension Settings via sysrc
+        // 1. Save Extension Settings
         foreach ($checkbox_vars as $var) {
             $val = isset($_POST[$var]) ? "1" : "0";
             mwexec("sysrc -f " . escapeshellarg($configfile) . " " . escapeshellarg($var) . "=" . escapeshellarg($val));
@@ -35,7 +44,7 @@ if ($_POST) {
             mwexec("sysrc -f " . escapeshellarg($configfile) . " REPLICATE_SETS+=" . escapeshellarg($_POST['REPLICATE_SETS_ADD']));
         }
 
-        // 2. Cron Job Management (XML Mimicry)
+        // 2. Cron Job Management
         $a_cronjob = &arr::make_branch($config, 'cron', 'job');
         $index = arr::search_ex($xync_uuid, $a_cronjob, 'uuid');
         $preset = $_POST['SCHEDULE_PRESET'];
@@ -48,7 +57,6 @@ if ($_POST) {
             $cron_record['uuid'] = $xync_uuid;
             $cron_record['desc'] = 'Xync Replication Task';
             
-            // Explicitly set strings to match your required XML format
             $cron_record['minute'] = '0';
             $cron_record['hour']   = ($preset === 'hourly') ? '*' : '0';
             $cron_record['day']    = '';
@@ -89,13 +97,13 @@ if ($_POST) {
     }
 }
 
-// Fetch current values from xync.conf
+// Fetch current values
 $current_values = [];
 foreach (array_merge($checkbox_vars, $text_vars) as $var) {
     $current_values[$var] = exec("sysrc -f " . escapeshellarg($configfile) . " -n " . escapeshellarg($var) . " 2>/dev/null");
 }
 
-// *** CONFIG.XML LOOKUP ***
+// *** CONFIG.XML LOOKUP (Fixed for "Array" bug) ***
 $current_preset = 'none';
 $xml_status_text = "Disabled";
 $job_index = arr::search_ex($xync_uuid, $config['cron']['job'] ?? [], 'uuid');
@@ -103,19 +111,24 @@ $job_index = arr::search_ex($xync_uuid, $config['cron']['job'] ?? [], 'uuid');
 if ($job_index !== false) {
     $job = $config['cron']['job'][$job_index];
     
-    // Determine preset for dropdown
     if (($job['all_hours'] ?? '') === '1') $current_preset = 'hourly';
     elseif (($job['all_weekdays'] ?? '') === '0') $current_preset = 'weekly';
     else $current_preset = 'daily';
 
-    // Construct a "Crontab-style" string for display based on XML values
-    $m = $job['minute'];
-    $h = ($job['all_hours'] === '1') ? '*' : $job['hour'];
-    $d = ($job['all_days'] === '1') ? '*' : $job['day'];
-    $M = ($job['all_months'] === '1') ? '*' : $job['month'];
-    $w = ($job['all_weekdays'] === '1') ? '*' : $job['weekday'];
+    // Helper to force Array to String conversion
+    $fmt = function($val, $default = '*') {
+        return (is_array($val) || empty($val)) ? $default : (string)$val;
+    };
+
+    $m = $fmt($job['minute'], '0');
+    $h = ($job['all_hours'] === '1') ? '*' : $fmt($job['hour'], '0');
+    $d = ($job['all_days'] === '1') ? '*' : $fmt($job['day'], '*');
+    $M = ($job['all_months'] === '1') ? '*' : $fmt($job['month'], '*');
+    $w = ($job['all_weekdays'] === '1') ? '*' : $fmt($job['weekday'], '*');
+    $who = $fmt($job['who'], 'root');
+    $cmd = $fmt($job['command'], $script_path);
     
-    $xml_status_text = "{$m} {$h} {$d} {$M} {$w} {$job['who']} {$job['command']}";
+    $xml_status_text = "{$m} {$h} {$d} {$M} {$w} {$who} {$cmd}";
 }
 
 $raw_replicate_sets = exec("sysrc -f " . escapeshellarg($configfile) . " -n REPLICATE_SETS 2>/dev/null");
@@ -144,7 +157,7 @@ include 'fbegin.inc';
                     <tr>
                         <td class="vncell"><?=gtext("Job Status (config.xml)");?></td>
                         <td class="vtable">
-                            <pre style="margin:0; padding:10px; background:#000; color:#0f0; border-radius:4px; font-weight:bold;"><?= htmlspecialchars($xml_status_text); ?></pre>
+                            <pre style="margin:0; padding:10px; background:#111; color:#55ff55; border-radius:4px; font-weight:bold;"><?= htmlspecialchars($xml_status_text); ?></pre>
                         </td>
                     </tr>
                     <?php 
