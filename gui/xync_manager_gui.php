@@ -64,6 +64,7 @@ if ($_POST) {
             $cron_record['all_weekdays'] = ($preset === 'weekly') ? '0' : '1';
             $cron_record['who'] = 'root';
             $cron_record['command'] = $script_path . " --config " . $configfile;
+            $cron_record['command'] = "/usr/local/bin/tmux new-session -d -s xync \"" . $script_path . " --config " . $configfile . "\"";
             
             if ($index !== false) { $a_cronjob[$index] = $cron_record; } 
             else { $a_cronjob[] = $cron_record; }
