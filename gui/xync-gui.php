@@ -1,29 +1,20 @@
 <?php
 /*
-    xync_manager_gui.php
-    Copyright (c) 2026 xync
+    xync-gui.php
+    Copyright (c) 2026 Victor Tschetter
 */
+
 require_once 'auth.inc';
 require_once 'guiconfig.inc';
 
-use common\arr;
-
 // Variables and Paths
-$sphere_scriptname = basename(__FILE__);
 $confdir = "/var/etc/xync";
 $ext_conf = "{$confdir}/xync.conf.ext";
-
-if (file_exists($ext_conf)) {
-    $cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' " . escapeshellarg($ext_conf) . " | /usr/bin/cut -d'\"' -f2");
-} else {
-    $cwdir = "/mnt/backup/extensions/xync"; 
-}
-
-$configfile = "{$cwdir}/xync.conf";
+$cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' " . escapeshellarg($ext_conf) . " | /usr/bin/cut -d'\"' -f2");
 $script_path = "{$cwdir}/xync.sh";
+$configfile = "{$cwdir}/xync.conf";
 $logbase_default = "{$cwdir}/logs";
 $xync_uuid = "68c74f5d-1234-4321-a1b2-c3d4e5f6a7b8"; 
-
 $checkbox_vars = ['ALLOW_RECONCILIATION', 'ALLOW_ROOT_DATASETS', 'RECURSE_CHILDREN'];
 $text_vars = ['LOG_BASE'];
 
@@ -41,8 +32,17 @@ if ($_POST) {
             mwexec("sysrc -f " . escapeshellarg($configfile) . " REPLICATE_SETS+=" . escapeshellarg($_POST['REPLICATE_SETS_ADD']));
         }
 
-        $a_cronjob = &arr::make_branch($config, 'cron', 'job');
-        $index = arr::search_ex($xync_uuid, $a_cronjob, 'uuid');
+        if (!isset($config['cron']['job']) || !is_array($config['cron']['job'])) {
+            $config['cron']['job'] = [];
+        }
+        $a_cronjob = &$config['cron']['job'];
+        $index = false;
+        foreach ($a_cronjob as $key => $job) {
+            if (isset($job['uuid']) && $job['uuid'] === $xync_uuid) {
+                $index = $key;
+                break;
+            }
+        }
         $preset = $_POST['SCHEDULE_PRESET'];
 
         if ($preset === 'none') {
@@ -116,7 +116,15 @@ if (is_dir($log_dir)) {
 // Cron Lookup
 $current_preset = 'none';
 $xml_status_text = "Disabled";
-$job_index = arr::search_ex($xync_uuid, $config['cron']['job'] ?? [], 'uuid');
+$job_index = false;
+if (isset($config['cron']['job']) && is_array($config['cron']['job'])) {
+    foreach ($config['cron']['job'] as $key => $job) {
+        if (isset($job['uuid']) && $job['uuid'] === $xync_uuid) {
+            $job_index = $key;
+            break;
+        }
+    }
+}
 if ($job_index !== false) {
     $job = $config['cron']['job'][$job_index];
     if (($job['all_hours'] ?? '') === '1') $current_preset = 'hourly';
@@ -139,7 +147,7 @@ $pgtitle = [gtext("Extensions"), gtext('Xync')];
 include 'fbegin.inc';
 ?>
 
-<form action="<?=$sphere_scriptname;?>" method="post" id="iform">
+<form action="xync-gui.php" method="post" name="iform" id="iform" onsubmit="spinner()">
     <table width="100%" border="0" cellpadding="0" cellspacing="0">
         <tr>
             <td class="tabcont">

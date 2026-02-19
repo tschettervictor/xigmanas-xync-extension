@@ -1,1 +1,1 @@
-<a href="xync_manager_gui.php">Xync</a>
+<a href="xync-gui.php">Xync</a>

@@ -137,7 +137,7 @@ configure_gui()
 		mkdir -p /var/etc/xync
 		ln -fhs ${CWDIR}/gui/ext/xync ${WWWPATH}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
 		ln -fhs ${CWDIR}/${EXTCONF} /var/etc/xync/${EXTCONF} || error_notify "Error: A problem has occurred while linking extension config file."			
-		ln -fhs ${CWDIR}/gui/xync_manager_gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while linking extension gui files."
+		ln -fhs ${CWDIR}/gui/xync-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while linking extension gui files."
 	fi
 }
 
