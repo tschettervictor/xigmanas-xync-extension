@@ -19,7 +19,7 @@
 ## Multiple space separated sets may be specified.
 ## Pools and dataset pairs must exist on the respective servers.
 ##
-REPLICATE_SETS=""
+#REPLICATE_SETS=""
 
 ## Allow replication of root datasets.
 ## If "REPLICATE_SETS" contains root datasets and "ALLOW_ROOT_DATASETS" is
@@ -28,7 +28,7 @@ REPLICATE_SETS=""
 ## 0 - disable (default)
 ## 1 - enable (use at your own risk)
 ##
-ALLOW_ROOT_DATASETS="0"
+#ALLOW_ROOT_DATASETS="0"
 
 ## Manual alteration of the source or destination datasets by removing
 ## snapshots often results in failure. It is expected that datasets configured
@@ -62,7 +62,7 @@ ALLOW_ROOT_DATASETS="0"
 ## 0 - disable (default)
 ## 1 - enable (use at your own risk)
 ##
-ALLOW_RECONCILIATION="0"
+#ALLOW_RECONCILIATION="0"
 
 ## Option to recursively replicate children of datasets contained
 ## in the replication set.
@@ -70,7 +70,7 @@ ALLOW_RECONCILIATION="0"
 ## 0 - disable (default)
 ## 1 - enable
 ##
-RECURSE_CHILDREN="0"
+#RECURSE_CHILDREN="0"
 
 ## The number of snapshots to keep for each dataset.
 ## Older snapshots, by creation date, will be deleted.
@@ -128,7 +128,7 @@ RECURSE_CHILDREN="0"
 ## logging is done via syslog. This setting will always be treated as a
 ## directory and not a file.
 ##
-LOG_BASE=""
+#LOG_BASE=""
 
 ## Path to the system "logger" executable.
 ## The default uses the first "logger" executable found in $PATH.

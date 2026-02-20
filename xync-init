@@ -40,7 +40,7 @@ APP_NAME="xync"
 APP_DIR=$(echo "${CWDIR}" | grep -o '[^/]*$')
 APP_INIT=$(basename $0) 
 APP_COMMAND="xync.sh"
-APP_CONFIG="${CWDIR}/xync.conf"
+APP_CONFIG="${CWDIR}/conf/xync.conf.ext"
 APP_DIST="${CWDIR}/${APP_NAME}-dist"
 EXT_CONFIG="${APP_NAME}.conf.ext"
 XIGMANAS_CONFIG="/cf/conf/config.xml"
@@ -59,7 +59,7 @@ install_extension() {
 		fetch -ao ${CWDIR}/${EXT_BRANCH}.zip --no-verify-peer --timeout=30 ${EXT_URL} || echo "[ERROR]: A problem has occurred while fetching ${APP} extension."
 		echo "Extracting ${APPNAME}..."
 		if [ -f "${APP_CONFIG}" ]; then
-			tar -xf ${CWDIR}/${EXT_BRANCH}.zip --exclude='.git*' --exclude='xync.conf' --strip-components 1 -C ${CWDIR} || \
+			tar -xf ${CWDIR}/${EXT_BRANCH}.zip --exclude='.git*' --exclude='xync.conf.ext' --strip-components 1 -C ${CWDIR} || \
 			echo "[ERROR]: A problem has occurred while extractig ${APP} extension files."
 		else
 			tar -xf ${CWDIR}/${EXT_BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
@@ -83,7 +83,7 @@ update_extension() {
     		echo "Fetching ${APP} extension..."
 	    	fetch -ao ${CWDIR}/${EXT_BRANCH}.zip --no-verify-peer --timeout=30 ${EXT_URL} || \
 		    echo "[ERROR]: A problem has occurred while fetching ${APP} extension."
-			tar -xf ${CWDIR}/update/${EXT_BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+			tar -xf ${CWDIR}/update/${EXT_BRANCH}.zip --exclude='.git*' --exclude="xync.conf.ext" --strip-components 1 -C ${CWDIR}/update
 			chmod +x ${CWDIR}/update/${APP_INIT}
 			rm -f ${CWDIR}/update/${EXT_BRANCH}.zip
 			cp -Rf ${CWDIR}/update/* ${CWDIR}/

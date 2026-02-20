@@ -8,13 +8,13 @@ require_once 'auth.inc';
 require_once 'guiconfig.inc';
 
 // Variables and Paths
-$confdir = "/var/etc/xync";
-$ext_conf = "{$confdir}/xync.conf.ext";
-$cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' " . escapeshellarg($ext_conf) . " | /usr/bin/cut -d'\"' -f2");
-$script_path = "{$cwdir}/xync.sh";
-$configfile = "{$cwdir}/xync.conf";
-$logbase_default = "{$cwdir}/logs";
-$xync_uuid = "68c74f5d-1234-4321-a1b2-c3d4e5f6a7b8"; 
+$ext_config_dir = "/var/etc/xync";
+$ext_config = "{$ext_config_dir}/xync.conf.ext";
+$cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' " . escapeshellarg($ext_confif) . " | /usr/bin/cut -d'\"' -f2");
+$app_command = "{$cwdir}/xync-dist/xync.sh";
+$app_config = "{$cwdir}/conf/xync.conf.ext";
+$log_dir_default = "{$cwdir}/logs";
+$cron_uuid = "68c74f5d-1234-4321-a1b2-c3d4e5f6a7b8"; 
 $checkbox_vars = ['ALLOW_RECONCILIATION', 'ALLOW_ROOT_DATASETS', 'RECURSE_CHILDREN'];
 $text_vars = ['LOG_BASE'];
 
@@ -23,13 +23,13 @@ if ($_POST) {
     if (isset($_POST['save']) && $_POST['save']) {
         foreach ($checkbox_vars as $var) {
             $val = isset($_POST[$var]) ? "1" : "0";
-            mwexec("sysrc -f " . escapeshellarg($configfile) . " " . escapeshellarg($var) . "=" . escapeshellarg($val));
+            mwexec("sysrc -f " . escapeshellarg($app_config) . " " . escapeshellarg($var) . "=" . escapeshellarg($val));
         }
         if (isset($_POST['LOG_BASE'])) {
-            mwexec("sysrc -f " . escapeshellarg($configfile) . " LOG_BASE=" . escapeshellarg($_POST['LOG_BASE']));
+            mwexec("sysrc -f " . escapeshellarg($app_config) . " LOG_BASE=" . escapeshellarg($_POST['LOG_BASE']));
         }
         if (!empty($_POST['REPLICATE_SETS_ADD'])) {
-            mwexec("sysrc -f " . escapeshellarg($configfile) . " REPLICATE_SETS+=" . escapeshellarg($_POST['REPLICATE_SETS_ADD']));
+            mwexec("sysrc -f " . escapeshellarg($app_config) . " REPLICATE_SETS+=" . escapeshellarg($_POST['REPLICATE_SETS_ADD']));
         }
 
         if (!isset($config['cron']['job']) || !is_array($config['cron']['job'])) {
@@ -38,7 +38,7 @@ if ($_POST) {
         $a_cronjob = &$config['cron']['job'];
         $index = false;
         foreach ($a_cronjob as $key => $job) {
-            if (isset($job['uuid']) && $job['uuid'] === $xync_uuid) {
+            if (isset($job['uuid']) && $job['uuid'] === $cron_uuid) {
                 $index = $key;
                 break;
             }
@@ -50,7 +50,7 @@ if ($_POST) {
         } else {
             $cron_record = [];
             $cron_record['enable'] = true; 
-            $cron_record['uuid'] = $xync_uuid;
+            $cron_record['uuid'] = $cron_uuid;
             $cron_record['desc'] = 'Xync Replication Task';
             $cron_record['minute'] = '0';
             $cron_record['hour']   = ($preset === 'hourly') ? '*' : '0';
@@ -63,8 +63,8 @@ if ($_POST) {
             $cron_record['all_months']   = '1';
             $cron_record['all_weekdays'] = ($preset === 'weekly') ? '0' : '1';
             $cron_record['who'] = 'root';
-            $cron_record['command'] = $script_path . " --config " . $configfile;
-            $cron_record['command'] = "/bin/tmux new-session -d -s xync \"" . $script_path . " --config " . $configfile . "\"";
+            $cron_record['command'] = $script_path . " --config " . $app_config;
+            $cron_record['command'] = "/bin/tmux new-session -d -s xync \"" . $script_path . " --config " . $app_config . "\"";
             
             if ($index !== false) { $a_cronjob[$index] = $cron_record; } 
             else { $a_cronjob[] = $cron_record; }
@@ -79,11 +79,11 @@ if ($_POST) {
 
     if (isset($_POST['delete_set']) && is_numeric($_POST['delete_set'])) {
         $idx = (int)$_POST['delete_set'];
-        $raw = exec("sysrc -f " . escapeshellarg($configfile) . " -n REPLICATE_SETS 2>/dev/null");
+        $raw = exec("sysrc -f " . escapeshellarg($app_config) . " -n REPLICATE_SETS 2>/dev/null");
         $sets = array_values(array_filter(explode(" ", $raw)));
         if (isset($sets[$idx])) {
             unset($sets[$idx]);
-            mwexec("sysrc -f " . escapeshellarg($configfile) . " REPLICATE_SETS=" . escapeshellarg(implode(" ", $sets)));
+            mwexec("sysrc -f " . escapeshellarg($app_config) . " REPLICATE_SETS=" . escapeshellarg(implode(" ", $sets)));
         }
     }
 }
@@ -91,8 +91,8 @@ if ($_POST) {
 // Fetch current values
 $current_values = [];
 foreach (array_merge($checkbox_vars, $text_vars) as $var) {
-    $val = exec("sysrc -f " . escapeshellarg($configfile) . " -n " . escapeshellarg($var) . " 2>/dev/null");
-    if ($var === 'LOG_BASE' && empty($val)) { $val = $logbase_default; }
+    $val = exec("sysrc -f " . escapeshellarg($app_config) . " -n " . escapeshellarg($var) . " 2>/dev/null");
+    if ($var === 'LOG_BASE' && empty($val)) { $val = $log_dir_default; }
     $current_values[$var] = $val;
 }
 
@@ -140,7 +140,7 @@ if ($job_index !== false) {
     $xml_status_text = "{$m} {$h} {$d} {$M} {$w} {$job['who']} {$job['command']}";
 }
 
-$raw_replicate_sets = exec("sysrc -f " . escapeshellarg($configfile) . " -n REPLICATE_SETS 2>/dev/null");
+$raw_replicate_sets = exec("sysrc -f " . escapeshellarg($app_config) . " -n REPLICATE_SETS 2>/dev/null");
 $replicate_sets_list = array_values(array_filter(explode(" ", $raw_replicate_sets)));
 
 $pgtitle = [gtext("Extensions"), gtext('Xync')];
