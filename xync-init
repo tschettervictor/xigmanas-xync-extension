@@ -68,7 +68,6 @@ add_extension()
 				tar -xf ${CWDIR}/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
 				echo "[ERROR]: A problem has occurred while extractig ${APPNAME} files."
 			fi
-			chmod 555 ${CWDIR}/${APPNAME}.sh
 			rm -f ${CWDIR}/${BRANCH}.zip
 			echo "Done!"
 		fi
@@ -120,6 +119,7 @@ configure_symlinks()
 {
 	# Set dir/files required permissions.
 	chmod 0750 ${CWDIR}
+	chmod +x ${CWDIR}/xync-init
 
 	# Link xync-init to /usr/local/sbin.
 	if [ ! -f "${USRLOCAL}/sbin/${SCRIPTNAME}" ]; then
