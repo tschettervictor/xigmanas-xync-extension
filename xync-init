@@ -35,49 +35,80 @@ PATH=${PATH}:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 CWDIR=$(dirname $(realpath $0))
 
 # Global variables.
-XYNC_DIR=$(echo "${CWDIR}" | grep -o '[^/]*$')
-SCRIPTNAME=$(basename $0)
-CONFIG="/cf/conf/config.xml"
-PRDNAME="Xync"
-APPNAME="xync"
-WWWPATH="/usr/local/www"
+APP="Xync"
+APP_NAME="xync"
+APP_DIR=$(echo "${CWDIR}" | grep -o '[^/]*$')
+APP_INIT=$(basename $0) 
+APP_COMMAND="xync.sh"
+APP_CONFIG="${CWDIR}/xync.conf"
+APP_DIST="${CWDIR}/${APP_NAME}-dist"
+EXT_CONFIG="${APP_NAME}.conf.ext"
+XIGMANAS_CONFIG="/cf/conf/config.xml"
 USRLOCAL="/usr/local"
-XYNCCONF="${CWDIR}/${APPNAME}.conf"
-EXTCONF="${APPNAME}.conf.ext"
-INSTALLPATH="${CWDIR}"
-BRANCH="main"
-XYNC_URL="https://github.com/tschettervictor/xigmanas-${APPNAME}-extension/archive/${BRANCH}.zip"
-VERFILE="https://raw.githubusercontent.com/tschettervictor/xigmanas-${APPNAME}-extension/${BRANCH}/version"
+WWW="${USRLOCAL}/www"
+INSTALL_PATH="${CWDIR}"
+APP_BRANCH="main"
+EXT_BRANCH="main"
+EXT_URL="https://github.com/tschettervictor/xigmanas-${APP_NAME}-extension/archive/${EXT_BRANCH}.zip"
+APP_URL="https://github.com/tschettervictor/${APP_NAME}/archive/${APP_BRANCH}.zip"
+EXT_VERSION_FILE="https://raw.githubusercontent.com/tschettervictor/xigmanas-${APP_NAME}-extension/${EXT_BRANCH}/version"
 
-add_extension()
-{
-	if [ ! -f "${CWDIR}/${APPNAME}.sh" ]; then
-		# Fetch latest package
-		echo "Fetching ${APPNAME} files..."
-		fetch -ao ${CWDIR}/${BRANCH}.zip --no-verify-peer --timeout=30 ${XYNC_URL} || \
-		echo "[ERROR]: A problem has occurred while fetching ${APPNAME}."
+install_extension() {
+	if [ ! -d "${CWDIR}/${APP_DIST}" ]; then
+		echo "Fetching ${APP} extension..."
+		fetch -ao ${CWDIR}/${EXT_BRANCH}.zip --no-verify-peer --timeout=30 ${EXT_URL} || echo "[ERROR]: A problem has occurred while fetching ${APP} extension."
+		echo "Extracting ${APPNAME}..."
+		if [ -f "${APP_CONFIG}" ]; then
+			tar -xf ${CWDIR}/${EXT_BRANCH}.zip --exclude='.git*' --exclude='xync.conf' --strip-components 1 -C ${CWDIR} || \
+			echo "[ERROR]: A problem has occurred while extractig ${APP} extension files."
+		else
+			tar -xf ${CWDIR}/${EXT_BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
+			echo "[ERROR]: A problem has occurred while extractig ${APPNAME} files."
+		fi
+		rm -f ${CWDIR}/${EXT_BRANCH}.zip
+		echo "Extension Installed!"
 	fi
-	# Extract files from package.
-	if [ -f "${CWDIR}/${BRANCH}.zip" ]; then
-		if [ ! -f "${CWDIR}/${APPNAME}.sh" ]; then
-			echo "Extracting ${APPNAME}..."
-			if [ -f "${XYNCCONF}" ]; then
-				tar -xf ${CWDIR}/${BRANCH}.zip --exclude='.git*' --exclude='xync.conf' --strip-components 1 -C ${CWDIR} || \
-				echo "[ERROR]: A problem has occurred while extractig ${APPNAME} files."
-			else
-				tar -xf ${CWDIR}/${BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
-				echo "[ERROR]: A problem has occurred while extractig ${APPNAME} files."
-			fi
-			rm -f ${CWDIR}/${BRANCH}.zip
-			echo "Done!"
+}
+
+update_extension() {
+	echo "Looking for new extension version..."
+	mkdir -p ${CWDIR}/update
+	fetch -ao ${CWDIR}/update --no-verify-peer --timeout=30 ${EXT_VERSION_FILE} || \
+	error_notify "Error: A problem has occurred while fetching version file."
+	if [ -f "${CWDIR}/update/version" ]; then
+		NEW_VERSION=$(cat ${CWDIR}/update/version | tr -d .)
+		CURRENT_VERSION=$(cat ${CWDIR}/version | tr -d .)
+		if [ "${NEW_VERSION}" -gt "${CURRENT_VERSION}" ]; then
+			echo "New extension version found, performing update..."
+    		echo "Fetching ${APP} extension..."
+	    	fetch -ao ${CWDIR}/${EXT_BRANCH}.zip --no-verify-peer --timeout=30 ${EXT_URL} || \
+		    echo "[ERROR]: A problem has occurred while fetching ${APP} extension."
+			tar -xf ${CWDIR}/update/${EXT_BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
+			chmod +x ${CWDIR}/update/${APP_INIT}
+			rm -f ${CWDIR}/update/${EXT_BRANCH}.zip
+			cp -Rf ${CWDIR}/update/* ${CWDIR}/
+			rm -R ${CWDIR}/update
+		else
+			echo "Extension is on the latest version!"
+			rm -R ${CWDIR}/update
 		fi
 	fi
+}
+
+install_app() {
+	mkdir -p "${APP_DIST}"
+	echo "Fetching ${APP} package..."
+	fetch -ao ${CWDIR}/${APP_BRANCH}.zip --no-verify-peer --timeout=30 ${APP_URL} || echo "[ERROR]: A problem has occurred while fetching ${APP} package."
+	echo "Extracting ${APP} package..."
+	tar -xf ${CWDIR}/${APP_BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${APP_DIST} || echo "[ERROR]: A problem has occurred while extractig ${APPNAME} package."
+	rm -f ${CWDIR}/${APP_BRANCH}.zip
+	echo "Package Installed!"
 }
 
 add_postinit()
 {
 	# Check and generate temporary php script for postinit command.
-	if ! grep -qw ${CWDIR}/${SCRIPTNAME} ${CONFIG}; then
+	if ! grep -qw ${CWDIR}/${APP_INIT} ${XIGMANAS_CONFIG}; then
 		touch ${CWDIR}/postinit || error_notify "Error: A problem has occurred while creating the postinit file."
 		chmod +x ${CWDIR}/postinit
 		cat << EOF > ${CWDIR}/postinit
@@ -109,47 +140,57 @@ EOF
 		error_notify "Error: A problem has occurred while executing postinit file."
 		echo "Done!"
 	fi
-	if [ ! -f "${CWDIR}/${EXTCONF}" ]; then
+	if [ ! -f "${CWDIR}/${EXT_CONFIG}" ]; then
 		# Set extension to enable by default.
-		sysrc -f ${CWDIR}/${EXTCONF} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
+		sysrc -f ${CWDIR}/${EXT_CONFIG} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 	fi
 }
 
-configure_symlinks()
+add_symlinks()
 {
-	# Set dir/files required permissions.
 	chmod 0750 ${CWDIR}
-	chmod +x ${CWDIR}/xync-init
-
-	# Link xync-init to /usr/local/sbin.
-	if [ ! -f "${USRLOCAL}/sbin/${SCRIPTNAME}" ]; then
-		ln -fs ${CWDIR}/${SCRIPTNAME} ${USRLOCAL}/sbin/${SCRIPTNAME}
+	chmod +x ${CWDIR}/${APP_INIT}
+	if [ ! -f "${USRLOCAL}/sbin/${APP_INIT}" ]; then
+		ln -fs ${CWDIR}/${APP_INIT} ${USRLOCAL}/sbin/${APP_INIT}
 	fi
-}
-
-configure_gui()
-{
 	# Initialize the extension gui.
 	if [ -d "${CWDIR}/gui" ]; then
-		if [ ! -d "${WWWPATH}/ext" ]; then
-			mkdir -p ${WWWPATH}/ext
+		if [ ! -d "${WWW}/ext" ]; then
+			mkdir -p ${WWW}/ext
 		fi
 		mkdir -p /var/etc/xync
-		ln -fhs ${CWDIR}/gui/ext/xync ${WWWPATH}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
-		ln -fhs ${CWDIR}/${EXTCONF} /var/etc/xync/${EXTCONF} || error_notify "Error: A problem has occurred while linking extension config file."			
-		ln -fhs ${CWDIR}/gui/xync-gui.php ${WWWPATH}/ || error_notify "Error: A problem has occurred while linking extension gui files."
+		ln -fhs ${CWDIR}/gui/ext/xync ${WWW}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
+		ln -fhs ${CWDIR}/${EXT_CONFIG} /var/etc/xync/${EXT_CONFIG} || error_notify "Error: A problem has occurred while linking extension config file."			
+		ln -fhs ${CWDIR}/gui/xync-gui.php ${WWW}/ || error_notify "Error: A problem has occurred while linking extension gui files."
 	fi
 }
 
-xync_init()
-{
-	echo "Initializing ${APPNAME}..."
+# Handle options.
+while [ "$#" -gt 0 ]; do
+    case "${1}" in
+	-u|--update)
+	    update_extension
+		update_app
+		exit 0
+	    ;;
+	-r|--remove)
+	    remove_extension
+		exit 0
+	    ;;
+	-x|--debug)
+		set -x
+		shift
+		;;
+	*) error_exit "[ERROR]: Unknown Option: \"${1}\""
+		;;
+    esac
+done
 
-	# Function calls.
-	add_postinit
-	add_extension
-	configure_symlinks
-	configure_gui
-}
+echo "Initializing ${APP}..."
 
-xync_init
+if [ ! -d "${CWDIR}/${APP_DIST}" ]; then
+	install_extension
+	install_app
+fi	
+add_postinit
+add_symlinks
