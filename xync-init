@@ -40,9 +40,9 @@ APP_NAME="xync"
 APP_DIR=$(echo "${CWDIR}" | grep -o '[^/]*$')
 APP_INIT=$(basename $0) 
 APP_COMMAND="xync.sh"
-APP_CONFIG="${CWDIR}/conf/xync.conf.ext"
+APP_CONFIG="${CWDIR}/conf/${APP_NAME}.conf"
 APP_DIST="${CWDIR}/${APP_NAME}-dist"
-EXT_CONFIG="${APP_NAME}.conf.ext"
+EXT_CONFIG="${CWDIR}/${APP_NAME}.conf.ext"
 XIGMANAS_CONFIG="/cf/conf/config.xml"
 USRLOCAL="/usr/local"
 WWW="${USRLOCAL}/www"
@@ -54,16 +54,17 @@ APP_URL="https://github.com/tschettervictor/${APP_NAME}/archive/${APP_BRANCH}.zi
 EXT_VERSION_FILE="https://raw.githubusercontent.com/tschettervictor/xigmanas-${APP_NAME}-extension/${EXT_BRANCH}/version"
 
 install_extension() {
-	if [ ! -d "${CWDIR}/${APP_DIST}" ]; then
+	if [ ! -d "${APP_DIST}" ]; then
 		echo "Fetching ${APP} extension..."
 		fetch -ao ${CWDIR}/${EXT_BRANCH}.zip --no-verify-peer --timeout=30 ${EXT_URL} || echo "[ERROR]: A problem has occurred while fetching ${APP} extension."
 		echo "Extracting ${APPNAME}..."
 		if [ -f "${APP_CONFIG}" ]; then
-			tar -xf ${CWDIR}/${EXT_BRANCH}.zip --exclude='.git*' --exclude='xync.conf.ext' --strip-components 1 -C ${CWDIR} || \
+			tar -xf ${CWDIR}/${EXT_BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
 			echo "[ERROR]: A problem has occurred while extractig ${APP} extension files."
 		else
 			tar -xf ${CWDIR}/${EXT_BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
 			echo "[ERROR]: A problem has occurred while extractig ${APPNAME} files."
+            cp "${CWDIR}/conf/xync.conf.sample" "${APP_CONFIG}"
 		fi
 		rm -f ${CWDIR}/${EXT_BRANCH}.zip
 		echo "Extension Installed!"
@@ -142,7 +143,7 @@ EOF
 	fi
 	if [ ! -f "${CWDIR}/${EXT_CONFIG}" ]; then
 		# Set extension to enable by default.
-		sysrc -f ${CWDIR}/${EXT_CONFIG} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
+		sysrc -f ${EXT_CONFIG} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 	fi
 }
 
@@ -160,7 +161,7 @@ add_symlinks()
 		fi
 		mkdir -p /var/etc/xync
 		ln -fhs ${CWDIR}/gui/ext/xync ${WWW}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
-		ln -fhs ${CWDIR}/${EXT_CONFIG} /var/etc/xync/${EXT_CONFIG} || error_notify "Error: A problem has occurred while linking extension config file."			
+		ln -fhs ${EXT_CONFIG} /var/etc/xync/${EXT_CONFIG} || error_notify "Error: A problem has occurred while linking extension config file."			
 		ln -fhs ${CWDIR}/gui/xync-gui.php ${WWW}/ || error_notify "Error: A problem has occurred while linking extension gui files."
 	fi
 }
@@ -170,7 +171,7 @@ while [ "$#" -gt 0 ]; do
     case "${1}" in
 	-u|--update)
 	    update_extension
-		update_app
+		install_app
 		exit 0
 	    ;;
 	-r|--remove)
@@ -188,7 +189,7 @@ done
 
 echo "Initializing ${APP}..."
 
-if [ ! -d "${CWDIR}/${APP_DIST}" ]; then
+if [ ! -d "${APP_DIST}" ]; then
 	install_extension
 	install_app
 fi	
