@@ -64,10 +64,11 @@ install_extension() {
 		else
 			tar -xf ${CWDIR}/${EXT_BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR} || \
 			echo "[ERROR]: A problem has occurred while extractig ${APPNAME} files."
-            cp "${CWDIR}/conf/xync.conf.sample" "${APP_CONFIG}"
+   cp "${CWDIR}/conf/xync.conf.sample" "${APP_CONFIG}"
 			sysrc -f "${APP_CONFIG}" LOG_BASE="${CWDIR}/logs"
 		fi
 		rm -f ${CWDIR}/${EXT_BRANCH}.zip
+		chmod +x "${APP_DIST}/${APP_COMMAND}"
 		echo "Extension Installed!"
 	fi
 }
@@ -104,6 +105,7 @@ install_app() {
 	echo "Extracting ${APP} package..."
 	tar -xf ${CWDIR}/${APP_BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${APP_DIST} || echo "[ERROR]: A problem has occurred while extractig ${APPNAME} package."
 	rm -f ${CWDIR}/${APP_BRANCH}.zip
+	chmod +x "${APP_DIST}/${APP_COMMAND}"
 	echo "Package Installed!"
 }
 
