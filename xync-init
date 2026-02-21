@@ -82,10 +82,10 @@ update_extension() {
 		CURRENT_VERSION=$(cat ${CWDIR}/version | tr -d .)
 		if [ "${NEW_VERSION}" -gt "${CURRENT_VERSION}" ]; then
 			echo "New extension version found, performing update..."
-    		echo "Fetching ${APP} extension..."
-	    	fetch -ao ${CWDIR}/${EXT_BRANCH}.zip --no-verify-peer --timeout=30 ${EXT_URL} || \
-		    echo "[ERROR]: A problem has occurred while fetching ${APP} extension."
-			tar -xf ${CWDIR}/update/${EXT_BRANCH}.zip --exclude='.git*' --exclude="xync.conf.ext" --strip-components 1 -C ${CWDIR}/update
+   echo "Fetching ${APP} extension..."
+	  fetch -ao ${CWDIR}/update/${EXT_BRANCH}.zip --no-verify-peer --timeout=30 ${EXT_URL} || \
+		 echo "[ERROR]: A problem has occurred while fetching ${APP} extension."
+			tar -xf ${CWDIR}/update/${EXT_BRANCH}.zip --exclude='.git*' --strip-components 1 -C ${CWDIR}/update
 			chmod +x ${CWDIR}/update/${APP_INIT}
 			rm -f ${CWDIR}/update/${EXT_BRANCH}.zip
 			cp -Rf ${CWDIR}/update/* ${CWDIR}/
