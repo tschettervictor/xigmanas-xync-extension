@@ -10,7 +10,7 @@ require_once 'guiconfig.inc';
 // Variables and Paths
 $ext_config_dir = "/var/etc/xync";
 $ext_config = "{$ext_config_dir}/xync.conf.ext";
-$cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' " . escapeshellarg($ext_confif) . " | /usr/bin/cut -d'\"' -f2");
+$cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' " . escapeshellarg($ext_config) . " | /usr/bin/cut -d'\"' -f2");
 $app_command = "{$cwdir}/xync-dist/xync.sh";
 $app_config = "{$cwdir}/conf/xync.conf";
 $log_dir_default = "{$cwdir}/logs";
