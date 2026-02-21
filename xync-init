@@ -169,6 +169,27 @@ add_symlinks()
 	fi
 }
 
+remove_extension() {
+    FILES="conf gui LICENCE logs README.md version xync-dist xync-init xync.conf.ext"
+	for FILE in ${FILES}; do
+		if [ -e"${CWDIR}/${FILE}" ]; then
+			rm -rf ${CWDIR}/${FILE}
+		fi
+	done
+	if [ -f "${WWW}/xync-gui.php" ]; then
+		rm -rf ${WWW}/xync-gui.php
+	fi
+	if [ -d "${WWW}/ext/xync" ]; then
+		rm -rf ${WWW}/ext/xync
+	fi
+	# Remove empty ext folder to prevent empty "Extensions" tab.
+	if [ -d "${WWW}/ext" ]; then
+		if [ ! "$(ls -A ${WWW}/ext)" ]; then
+			rm -R ${WWW}/ext
+		fi
+	fi
+}
+
 # Handle options.
 while [ "$#" -gt 0 ]; do
     case "${1}" in
