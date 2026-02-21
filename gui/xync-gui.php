@@ -63,8 +63,7 @@ if ($_POST) {
             $cron_record['all_months']   = '1';
             $cron_record['all_weekdays'] = ($preset === 'weekly') ? '0' : '1';
             $cron_record['who'] = 'root';
-            $cron_record['command'] = $app_command . " --config " . $app_config;
-            $cron_record['command'] = "/bin/tmux new-session -d -s xync \"" . $script_path . " --config " . $app_config . "\"";
+            $cron_record['command'] = "/bin/tmux new-session -d -s xync \"" . $app_command . " --config " . $app_config . "\"";
             
             if ($index !== false) { $a_cronjob[$index] = $cron_record; } 
             else { $a_cronjob[] = $cron_record; }
