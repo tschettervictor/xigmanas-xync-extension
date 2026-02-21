@@ -13,6 +13,8 @@ $ext_config = "{$ext_config_dir}/xync.conf.ext";
 $cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' " . escapeshellarg($ext_config) . " | /usr/bin/cut -d'\"' -f2");
 $app_command = "{$cwdir}/xync-dist/xync.sh";
 $app_config = "{$cwdir}/conf/xync.conf";
+$ext_version = "{$cwdir}/version";
+$version = (file_exists($ext_version)) ? trim(file_get_contents($ext_version)) : "N/A";
 $log_dir_default = "{$cwdir}/logs";
 $cron_uuid = "68c74f5d-1234-4321-a1b2-c3d4e5f6a7b8"; 
 $checkbox_vars = ['ALLOW_RECONCILIATION', 'ALLOW_ROOT_DATASETS', 'RECURSE_CHILDREN'];
@@ -163,6 +165,13 @@ include 'fbegin.inc';
                 <table width="100%" border="0" cellpadding="6" cellspacing="0">
                     <?php 
                     html_titleline2(gettext("General Settings"));
+					?>
+					<tr>
+                        <td class="vncell"><?=gtext("Extension Version");?></td>
+                        <td class="vtable"><?=gtext($version);?></td>
+                        </td>
+                    </tr>
+					<?php
                     html_checkbox2('ALLOW_RECONCILIATION', gettext('Allow Reconciliation'), ($current_values['ALLOW_RECONCILIATION'] === '1'), gettext('Force replication in case of mismatching snapshots.'), '', false);
                     html_checkbox2('ALLOW_ROOT_DATASETS', gettext('Allow Root Datasets'), ($current_values['ALLOW_ROOT_DATASETS'] === '1'), gettext('Allow replicating of root datasets.'), '', false);
                     html_checkbox2('RECURSE_CHILDREN', gettext('Recurse Children'), ($current_values['RECURSE_CHILDREN'] === '1'), gettext('Recursively replicate all child datasets.'), '', false);
