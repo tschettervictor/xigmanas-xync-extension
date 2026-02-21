@@ -12,6 +12,7 @@ $ext_config_dir = "/var/etc/xync";
 $ext_config = "{$ext_config_dir}/xync.conf.ext";
 $cwdir = exec("/usr/bin/grep 'INSTALL_DIR=' " . escapeshellarg($ext_config) . " | /usr/bin/cut -d'\"' -f2");
 $app_command = "{$cwdir}/xync-dist/xync.sh";
+$ext_command = "{$cwdir}/xync-init";
 $app_config = "{$cwdir}/conf/xync.conf";
 $ext_version = "{$cwdir}/version";
 $version = (file_exists($ext_version)) ? trim(file_get_contents($ext_version)) : "N/A";
@@ -26,7 +27,7 @@ if ($_POST) {
     // Update and Uninstall
     if (isset($_POST['update']) || isset($_POST['uninstall'])) {
         $flag = isset($_POST['update']) ? "-u" : "-r";
-        $cmd = "{$app_command} {$flag}";
+        $cmd = "{$ext_command} {$flag}";
         exec($cmd, $output, $return_val);
         $savemsg = implode("<br />", $output);
         if (empty($savemsg)) { $savemsg = "Command executed."; }
