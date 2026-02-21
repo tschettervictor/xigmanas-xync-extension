@@ -42,7 +42,7 @@ APP_INIT=$(basename $0)
 APP_COMMAND="xync.sh"
 APP_CONFIG="${CWDIR}/conf/${APP_NAME}.conf"
 APP_DIST="${CWDIR}/${APP_NAME}-dist"
-EXT_CONFIG="${CWDIR}/${APP_NAME}.conf.ext"
+EXT_CONFIG="${APP_NAME}.conf.ext"
 XIGMANAS_CONFIG="/cf/conf/config.xml"
 USRLOCAL="/usr/local"
 WWW="${USRLOCAL}/www"
@@ -143,7 +143,7 @@ EOF
 	fi
 	if [ ! -f "${CWDIR}/${EXT_CONFIG}" ]; then
 		# Set extension to enable by default.
-		sysrc -f ${EXT_CONFIG} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
+		sysrc -f ${CWDIR}/${EXT_CONFIG} INSTALL_DIR=${CWDIR} >/dev/null 2>&1
 	fi
 }
 
@@ -161,7 +161,7 @@ add_symlinks()
 		fi
 		mkdir -p /var/etc/xync
 		ln -fhs ${CWDIR}/gui/ext/xync ${WWW}/ext/ || error_notify "Error: A problem has occurred while copying extension gui files."
-		ln -fhs ${EXT_CONFIG} /var/etc/xync/${EXT_CONFIG} || error_notify "Error: A problem has occurred while linking extension config file."			
+		ln -fhs ${CWDIR}/${EXT_CONFIG} /var/etc/xync/${EXT_CONFIG} || error_notify "Error: A problem has occurred while linking extension config file."			
 		ln -fhs ${CWDIR}/gui/xync-gui.php ${WWW}/ || error_notify "Error: A problem has occurred while linking extension gui files."
 	fi
 }
