@@ -119,7 +119,7 @@ $xml_status_text = "Disabled";
 $job_index = false;
 if (isset($config['cron']['job']) && is_array($config['cron']['job'])) {
     foreach ($config['cron']['job'] as $key => $job) {
-        if (isset($job['uuid']) && $job['uuid'] === $xync_uuid) {
+        if (isset($job['uuid']) && $job['uuid'] === $cron_uuid) {
             $job_index = $key;
             break;
         }
